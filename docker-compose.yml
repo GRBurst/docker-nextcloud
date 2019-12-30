@@ -1,0 +1,57 @@
+# https://hub.docker.com/_/nextcloud?tab=description
+version: '3.7'
+
+services:
+  nextcloud:
+    container_name: nextcloud
+    restart: always
+    image: nextcloud:17-apache
+    networks:
+      - reverse-proxy
+      - default
+    expose:
+      - 80
+    volumes:
+      - data-nextcloud:/var/www/html/
+      - ${DOCKER_STORAGE}/nextcloud:/var/www/html/data
+    depends_on:
+      - nextcloud_db
+      - nextcloud_redis
+    environment:
+      POSTGRES_HOST: nextcloud_db
+      POSTGRES_USER: nextcloud
+      POSTGRES_DB: nextcloud
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-test}
+      NEXTCLOUD_TABLE_PREFIX: "nc_"
+      NEXTCLOUD_ADMIN_USER: ${NEXTCLOUD_ADMIN_USER:-admin}
+      NEXTCLOUD_ADMIN_PASSWORD: ${NEXTCLOUD_ADMIN_PASSWORD:-admin}
+      REDIS_HOST: nextcloud_redis
+
+  nextcloud_db:
+    container_name: nextcloud_db
+    image: postgres:12
+    restart: always
+    volumes:
+      - data-db:/var/lib/postgresql
+    environment:
+      POSTGRES_USER: nextcloud
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-test}
+      POSTGRES_DB: nextcloud
+
+  nextcloud_redis:
+    container_name: nextcloud_redis
+    image: redis:alpine
+    volumes:
+        - data-redis:/data
+    restart: always
+    expose:
+      - 6379
+
+volumes:
+  data-nextcloud:
+  data-db:
+  data-redis:
+
+networks:
+  reverse-proxy:
+    external: true
